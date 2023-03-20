@@ -63,13 +63,24 @@ uint32_t decode_varint(const uint8_t **bufp)
     return value;
 }
 
+size_t file_size(FILE *file)
+{
+    size_t size = 0;
+    uint8_t tmp = 0;
+    while (fread(&tmp, 1, 1, file)) {
+        size++;
+    }
+    fseek(file, 0, SEEK_SET);
+    return size;
+}
+
 int main()
 {
     FILE *uncom_file = fopen("uncompressed", "wb");
     FILE *com_file = fopen("compressed", "wb");
-    uint8_t buf[4] = {0};
 
     for (int i = 0; i < 1000000; i++) {
+        uint8_t buf[4] = {0};
         uint32_t num = generate_number();
         size_t e_size = encode_varint(num, buf);
         fwrite(&num, 4, 1, uncom_file);
@@ -79,12 +90,23 @@ int main()
     fclose(com_file);
     fclose(uncom_file);
 
-    FILE *uncom_file = fopen("uncompressed", "rb");
-    FILE *com_file = fopen("compressed", "rb");
-
+    uncom_file = fopen("uncompressed", "rb");
+    com_file = fopen("compressed", "rb");
     uint32_t num;
-    uint8_t bufp[4];
+    size_t com_file_size = file_size(com_file); 
+    uint8_t *buf = malloc(sizeof(uint8_t) * com_file_size);
+    uint8_t *buf_free = buf;
+    assert(buf != NULL && "Error: memory not allocated");
+
+    for (size_t i = 0; i < com_file_size; i++) {
+        fread(buf + i, 1, 1, com_file);
+    }
+
+    while (fread(&num, sizeof(int), 1, uncom_file)) {
+        assert(num == decode_varint((const uint8_t **)&buf) && "Error: num != decode");
+    }
 
     fclose(com_file);
     fclose(uncom_file);
+    free(buf_free);
 }
