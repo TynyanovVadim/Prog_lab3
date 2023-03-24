@@ -66,10 +66,8 @@ uint32_t decode_varint(const uint8_t **bufp)
 size_t file_size(FILE *file)
 {
     size_t size = 0;
-    uint8_t tmp = 0;
-    while (fread(&tmp, 1, 1, file)) {
-        size++;
-    }
+    fseek(file, 0, SEEK_END);
+    size = ftell(file);
     fseek(file, 0, SEEK_SET);
     return size;
 }
@@ -106,6 +104,8 @@ int main()
         assert(num == decode_varint((const uint8_t **)&buf) && "Error: num != decode");
     }
 
+    double com_ratio = (double)file_size(com_file) / (double)file_size(uncom_file);
+    printf("compression ratio - %lf\n", com_ratio);
     fclose(com_file);
     fclose(uncom_file);
     free(buf_free);
